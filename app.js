@@ -52,7 +52,7 @@ const setTurnStatus = () => {
   const current = state.players[state.turnIndex];
   dom.turnStatus.textContent = current
     ? `${current.name}'s turn`
-    : "-";
+    : "Waiting for players";
 };
 
 const setRoomStatus = () => {
@@ -248,7 +248,10 @@ const requestState = async () => {
 const updateStateFromSync = (payload) => {
   state.boardSize = payload.boardSize;
   state.maxPlayers = payload.maxPlayers;
-  state.players = payload.players;
+  state.players = payload.players.map((player) => ({
+    ...player,
+    score: player.score ?? 0,
+  }));
   state.turnIndex = payload.turnIndex;
   state.lines = new Map(payload.lines);
   state.board = payload.board;
@@ -287,6 +290,9 @@ const setupChannel = async () => {
         ...player,
         score: state.players[index]?.score ?? 0,
       }));
+      if (state.turnIndex >= state.players.length) {
+        state.turnIndex = 0;
+      }
       updatePlayers();
     });
 
@@ -297,6 +303,7 @@ const setupChannel = async () => {
         name: state.playerName,
       });
       await requestState();
+      setTurnStatus();
     }
   });
 };
@@ -335,6 +342,8 @@ const startRoom = async ({ create }) => {
     resetBoard();
     buildBoard();
     updatePlayers();
+  } else {
+    setStatus("Joining room...");
   }
 
   await setupChannel();

@@ -108,10 +108,12 @@ button:hover {
 
 .line.horizontal {
   height: 8px;
+  width: 36px;
 }
 
 .line.vertical {
   width: 8px;
+  height: 36px;
 }
 
 .line.available {
