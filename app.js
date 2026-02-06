@@ -49,10 +49,12 @@ const setStatus = (text) => {
 };
 
 const setTurnStatus = () => {
-  const current = state.players[state.turnIndex];
-  dom.turnStatus.textContent = current
-    ? `${current.name}'s turn`
-    : "Waiting for players";
+  if (state.players.length === 0) {
+    dom.turnStatus.textContent = "Waiting for players";
+    return;
+  }
+  const current = state.players[state.turnIndex] ?? state.players[0];
+  dom.turnStatus.textContent = `${current.name}'s turn`;
 };
 
 const setRoomStatus = () => {
@@ -286,9 +288,12 @@ const setupChannel = async () => {
     .on("presence", { event: "sync" }, () => {
       const presenceState = state.channel.presenceState();
       const roster = Object.values(presenceState).flat();
+      const scoreMap = new Map(
+        state.players.map((player) => [player.id, player.score ?? 0]),
+      );
       state.players = roster.map((player, index) => ({
         ...player,
-        score: state.players[index]?.score ?? 0,
+        score: scoreMap.get(player.id) ?? 0,
       }));
       if (state.turnIndex >= state.players.length) {
         state.turnIndex = 0;
@@ -302,6 +307,17 @@ const setupChannel = async () => {
         id: state.playerId,
         name: state.playerName,
       });
+      if (state.players.length === 0) {
+        state.players = [
+          {
+            id: state.playerId,
+            name: state.playerName,
+            score: 0,
+          },
+        ];
+        state.turnIndex = 0;
+        updatePlayers();
+      }
       await requestState();
       setTurnStatus();
     }
