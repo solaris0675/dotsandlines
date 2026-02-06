@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dots and Lines Multiplayer</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app">
+    <header>
+      <h1>Dots and Lines</h1>
+      <p class="subtitle">Claim boxes by completing the fourth side. Score the most boxes to win.</p>
+    </header>
+
+    <section class="status">
+      <div class="player-indicator">
+        <span class="label">Current Player:</span>
+        <span id="current-player" class="player-tag player-one">Player 1</span>
+      </div>
+      <div class="scores">
+        <div class="score">
+          <span class="player-tag player-one">Player 1</span>
+          <span id="score-one">0</span>
+        </div>
+        <div class="score">
+          <span class="player-tag player-two">Player 2</span>
+          <span id="score-two">0</span>
+        </div>
+      </div>
+      <button id="reset" type="button">Reset Game</button>
+    </section>
+
+    <section class="board" aria-label="Dots and Lines board">
+      <div id="grid" class="grid" role="grid"></div>
+    </section>
+
+    <section class="instructions">
+      <h2>How to Play</h2>
+      <ol>
+        <li>Players take turns placing a horizontal or vertical line.</li>
+        <li>Completing a box scores a point and grants an extra turn.</li>
+        <li>The game ends when all boxes are claimed.</li>
+      </ol>
+      <p id="game-message" class="message" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
