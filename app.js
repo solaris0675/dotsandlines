@@ -44,6 +44,18 @@ const dom = {
 const randomId = () =>
   Math.random().toString(36).slice(2, 8).toUpperCase();
 
+const ensurePlayer = (player) => {
+  if (!player) {
+    return;
+  }
+  const exists = state.players.some((entry) => entry.id === player.id);
+  if (!exists) {
+    state.players.push({ ...player, score: player.score ?? 0 });
+  }
+};
+
+const isHost = () => state.players[0]?.id === state.playerId;
+
 const setStatus = (text) => {
   dom.status.textContent = text;
 };
@@ -273,6 +285,17 @@ const setupChannel = async () => {
   });
 
   state.channel
+    .on("broadcast", { event: "join-request" }, ({ payload }) => {
+      if (!isHost()) {
+        return;
+      }
+      ensurePlayer({ id: payload.id, name: payload.name, score: 0 });
+      if (state.players.length > state.maxPlayers) {
+        state.players = state.players.slice(0, state.maxPlayers);
+      }
+      updatePlayers();
+      broadcastState();
+    })
     .on("broadcast", { event: "move" }, ({ payload }) => {
       applyMove(payload);
     })
@@ -317,6 +340,13 @@ const setupChannel = async () => {
         ];
         state.turnIndex = 0;
         updatePlayers();
+      }
+      if (!isHost()) {
+        await state.channel.send({
+          type: "broadcast",
+          event: "join-request",
+          payload: { id: state.playerId, name: state.playerName },
+        });
       }
       await requestState();
       setTurnStatus();
