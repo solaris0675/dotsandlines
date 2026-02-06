@@ -57,6 +57,9 @@ const ensurePlayer = (player) => {
 
 const isHost = () => state.hostId === state.playerId;
 
+const getPlayerIndexById = (playerId) =>
+  state.players.findIndex((player) => player.id === playerId);
+
 const setStatus = (text) => {
   dom.status.textContent = text;
 };
@@ -217,16 +220,20 @@ const applyMove = ({ lineKey, playerIndex }) => {
 };
 
 const sendMove = async (lineKey) => {
-  const playerIndex = state.players.findIndex((p) => p.id === state.playerId);
-  if (playerIndex !== state.turnIndex) {
+  const playerIndex = getPlayerIndexById(state.playerId);
+  if (playerIndex === -1 || playerIndex !== state.turnIndex) {
+    return;
+  }
+  if (isHost()) {
+    applyMove({ lineKey, playerIndex });
+    await broadcastState();
     return;
   }
   await state.channel.send({
     type: "broadcast",
-    event: "move",
-    payload: { lineKey, playerIndex },
+    event: "move-request",
+    payload: { lineKey, playerId: state.playerId },
   });
-  applyMove({ lineKey, playerIndex });
 };
 
 const handleLineClick = (row, col) => {
@@ -299,8 +306,19 @@ const setupChannel = async () => {
       updatePlayers();
       broadcastState();
     })
-    .on("broadcast", { event: "move" }, ({ payload }) => {
-      applyMove(payload);
+    .on("broadcast", { event: "move-request" }, ({ payload }) => {
+      if (!isHost()) {
+        return;
+      }
+      const playerIndex = getPlayerIndexById(payload.playerId);
+      if (playerIndex === -1 || playerIndex !== state.turnIndex) {
+        return;
+      }
+      if (state.lines.has(payload.lineKey)) {
+        return;
+      }
+      applyMove({ lineKey: payload.lineKey, playerIndex });
+      broadcastState();
     })
     .on("broadcast", { event: "sync" }, ({ payload }) => {
       updateStateFromSync(payload);
