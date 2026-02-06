@@ -25,6 +25,7 @@ const state = {
   board: [],
   lines: new Map(),
   channel: null,
+  hostId: null,
 };
 
 const dom = {
@@ -54,7 +55,7 @@ const ensurePlayer = (player) => {
   }
 };
 
-const isHost = () => state.players[0]?.id === state.playerId;
+const isHost = () => state.hostId === state.playerId;
 
 const setStatus = (text) => {
   dom.status.textContent = text;
@@ -241,6 +242,7 @@ const broadcastState = async () => {
     type: "broadcast",
     event: "sync",
     payload: {
+      hostId: state.hostId,
       boardSize: state.boardSize,
       maxPlayers: state.maxPlayers,
       players: state.players,
@@ -260,6 +262,7 @@ const requestState = async () => {
 };
 
 const updateStateFromSync = (payload) => {
+  state.hostId = payload.hostId ?? state.hostId;
   state.boardSize = payload.boardSize;
   state.maxPlayers = payload.maxPlayers;
   state.players = payload.players.map((player) => ({
@@ -314,10 +317,18 @@ const setupChannel = async () => {
       const scoreMap = new Map(
         state.players.map((player) => [player.id, player.score ?? 0]),
       );
-      state.players = roster.map((player, index) => ({
-        ...player,
-        score: scoreMap.get(player.id) ?? 0,
-      }));
+      roster.forEach((player) => {
+        ensurePlayer({
+          ...player,
+          score: scoreMap.get(player.id) ?? 0,
+        });
+      });
+      if (state.players.length === 0 && roster.length > 0) {
+        state.players = roster.map((player) => ({
+          ...player,
+          score: scoreMap.get(player.id) ?? 0,
+        }));
+      }
       if (state.turnIndex >= state.players.length) {
         state.turnIndex = 0;
       }
@@ -340,6 +351,9 @@ const setupChannel = async () => {
         ];
         state.turnIndex = 0;
         updatePlayers();
+      }
+      if (!state.hostId && isHost()) {
+        state.hostId = state.playerId;
       }
       if (!isHost()) {
         await state.channel.send({
@@ -384,6 +398,7 @@ const startRoom = async ({ create }) => {
         score: 0,
       },
     ];
+    state.hostId = state.playerId;
     state.turnIndex = 0;
     resetBoard();
     buildBoard();
